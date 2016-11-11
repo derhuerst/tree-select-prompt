@@ -1,0 +1,14 @@
+{
+	"name":              "tree-select-prompt",
+	"description":       "A prompt to select an item from a tree.",
+	"version":           "0.1.0",
+	"main":              "index.js",
+	"files":             ["index.js"],
+	"keywords":          ["command", "line", "cli", "prompt", "select", "tree", "nested"],
+	"author":            "Jannis R <mail@jannisr.de>",
+	"homepage":          "https://github.com/derhuerst/tree-select-prompt",
+	"repository":        "git://github.com/derhuerst/tree-select-prompt.git",
+	"issues":            "https://github.com/derhuerst/tree-select-prompt/issues",
+	"license":           "ISC",
+	"engines":           {"node": ">=6"}
+}
