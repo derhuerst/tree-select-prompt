@@ -12,22 +12,22 @@ const TreeSelectPrompt = {
 	  choiceAtCursor: function (n, values = this.values, offset = 0) {
 		let i = 0
 		for (let value of values) {
-			if (Array.isArray(value)) {
-				const result = this.choiceAtCursor(n, value, i + offset)
-				i += value.length
+			if (n === (i + offset)) return value
+			i++
+			if (Array.isArray(value.children)) {
+				const result = this.choiceAtCursor(n, value.children, i + offset)
 				if (result) return result
+				i += value.children.length
 			}
-			else if (n === (i + offset)) return value
-			else i++
 		}
 	}
 
 	, nrOfChoices: function (values = this.values) {
 		let nr = 0
-		for (let i = 0; i < values.length; i++) {
-			nr += Array.isArray(values[i])
-				? this.nrOfChoices(values[i])
-				: 1
+		for (let value of values) {
+			nr++
+			if (Array.isArray(value.children))
+				nr += this.nrOfChoices(value.children)
 		}
 		return nr
 	}
@@ -100,15 +100,14 @@ const TreeSelectPrompt = {
 		+ '\n'
 	}
 
-	, renderChoices: function (choices, indent, selected, i) {
+	, renderChoices: function (choices, selected, indent = 0, offset = 0) {
 		let out = ''
 		for (let choice of choices) {
-			if (Array.isArray(choice)) {
-				out += this.renderChoices(choice, indent + 4, selected, i)
-				i += choice.length
-			} else {
-				out += this.renderChoice(choice, indent, i === selected)
-				i++
+			out += this.renderChoice(choice, indent, offset === selected)
+			offset++
+			if (Array.isArray(choice.children)) {
+				out += this.renderChoices(choice.children, selected, indent + 4, offset)
+				offset += choice.children.length
 			}
 		}
 		return out
@@ -127,7 +126,7 @@ const TreeSelectPrompt = {
 
 		if (!this.done) this.out.write(
 			'\n'
-			+ this.renderChoices(this.values, 0, this.cursor, 0)
+			+ this.renderChoices(this.values, this.cursor)
 		)
 	}
 }
