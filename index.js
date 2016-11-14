@@ -7,34 +7,23 @@ const wrap = require('prompt-skeleton')
 
 
 
+const flattenChoices = (choices) =>
+	choices.reduce((flat, choice) => {
+		if (choice.expanded && Array.isArray(choice.children))
+			return flat.concat(choice, flattenChoices(choice.children))
+		return flat.concat(choice)
+	}, [])
+
+const choiceAtCursor = (choices, cursor) => flattenChoices(choices)[cursor]
+const nrOfChoices = (choices) => flattenChoices(choices).length
+
+
+
 const TreeSelectPrompt = {
 
-	  choiceAtCursor: function (n, values = this.values, offset = 0) {
-		let i = 0
-		for (let value of values) {
-			if (n === (i + offset)) return value
-			i++
-			if (Array.isArray(value.children) && value.expanded) {
-				const result = this.choiceAtCursor(n, value.children, i + offset)
-				if (result) return result
-				i += value.children.length
-			}
-		}
-	}
-
-	, nrOfChoices: function (values = this.values) {
-		let nr = 0
-		for (let value of values) {
-			nr++
-			if (Array.isArray(value.children) && value.expanded)
-				nr += this.nrOfChoices(value.children)
-		}
-		return nr
-	}
-
-	, moveCursor: function (n) {
+	  moveCursor: function (n) {
 		this.cursor = n
-		this.choice = this.choiceAtCursor(n)
+		this.choice = choiceAtCursor(this.values, n)
 		this.value = this.choice.value
 		this.emit()
 	}
@@ -69,7 +58,7 @@ const TreeSelectPrompt = {
 		this.render()
 	}
 	, last: function () {
-		this.moveCursor(this.nrOfChoices() - 1)
+		this.moveCursor(nrOfChoices(this.values) - 1)
 		this.render()
 	}
 
@@ -79,12 +68,12 @@ const TreeSelectPrompt = {
 		this.render()
 	}
 	, down: function () {
-		if (this.cursor === (this.nrOfChoices() - 1)) return this.bell()
+		if (this.cursor === (nrOfChoices(this.values) - 1)) return this.bell()
 		this.moveCursor(this.cursor + 1)
 		this.render()
 	}
 	, next: function () {
-		this.moveCursor((this.cursor + 1) % this.nrOfChoices())
+		this.moveCursor((this.cursor + 1) % nrOfChoices(this.values))
 		this.render()
 	}
 
@@ -120,13 +109,13 @@ const TreeSelectPrompt = {
 
 	, render: function (first) {
 		if (first) this.out.write(esc.cursorHide)
-		else this.out.write(esc.eraseLines(this._nrOfChoices + 2))
-		this._nrOfChoices = this.nrOfChoices()
+		else this.out.write(esc.eraseLines(this.previousNrOfChoices + 2))
+		this.previousNrOfChoices = nrOfChoices(this.values)
 
 		this.out.write([
 			  ui.symbol(this.done, this.aborted)
 			, chalk.bold(this.msg), ui.delimiter(false)
-			, (this.done ? this.choiceAtCursor(this.cursor).title : chalk.gray(this.hint))
+			, (this.done ? choiceAtCursor(this.values, this.cursor).title : chalk.gray(this.hint))
 		].join(' '))
 
 		if (!this.done) this.out.write(
@@ -144,7 +133,7 @@ const defaults = {
 	, values:  []
 	, value:   null
 	, cursor:  0
-	, _nrOfChoices: 0
+	, previousNrOfChoices: 0
 
 	, done:    false
 	, aborted: false
