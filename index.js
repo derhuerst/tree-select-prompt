@@ -126,7 +126,7 @@ const TreeSelectPrompt = {
 		this.out.write([
 			  ui.symbol(this.done, this.aborted)
 			, chalk.bold(this.msg), ui.delimiter(false)
-			, (this.done ? this.choiceAtCursor(this.cursor).title : '')
+			, (this.done ? this.choiceAtCursor(this.cursor).title : chalk.gray(this.hint))
 		].join(' '))
 
 		if (!this.done) this.out.write(
@@ -139,7 +139,9 @@ const TreeSelectPrompt = {
 
 
 const defaults = {
-	  values:  []
+	  hint:    '– Space to expand. Return to select.'
+
+	, values:  []
 	, value:   null
 	, cursor:  0
 	, _nrOfChoices: 0
