@@ -14,7 +14,7 @@ const TreeSelectPrompt = {
 		for (let value of values) {
 			if (n === (i + offset)) return value
 			i++
-			if (Array.isArray(value.children)) {
+			if (Array.isArray(value.children) && value.expanded) {
 				const result = this.choiceAtCursor(n, value.children, i + offset)
 				if (result) return result
 				i += value.children.length
@@ -26,7 +26,7 @@ const TreeSelectPrompt = {
 		let nr = 0
 		for (let value of values) {
 			nr++
-			if (Array.isArray(value.children))
+			if (Array.isArray(value.children) && value.expanded)
 				nr += this.nrOfChoices(value.children)
 		}
 		return nr
@@ -34,7 +34,8 @@ const TreeSelectPrompt = {
 
 	, moveCursor: function (n) {
 		this.cursor = n
-		this.value = this.choiceAtCursor(n).value
+		this.choice = this.choiceAtCursor(n)
+		this.value = this.choice.value
 		this.emit()
 	}
 
@@ -88,14 +89,17 @@ const TreeSelectPrompt = {
 	}
 
 	, _: function (c) { // on space key
-		if (c === ' ') return this.submit()
+		if (c === ' ') {
+			this.choice.expanded = !this.choice.expanded
+			this.render()
+		}
 	}
 
 
 
 	, renderChoice: function (choice, indent, selected) {
 		return ' '.repeat(+indent)
-		+ chalk.gray('- ')
+		+ chalk.gray(ui.item(Array.isArray(choice.children), choice.expanded)) + ' '
 		+ (selected ? chalk.cyan.underline(choice.title) : choice.title)
 		+ '\n'
 	}
@@ -106,7 +110,8 @@ const TreeSelectPrompt = {
 			out += this.renderChoice(choice, indent, offset === selected)
 			offset++
 			if (Array.isArray(choice.children)) {
-				out += this.renderChoices(choice.children, selected, indent + 4, offset)
+				if (choice.expanded)
+					out += this.renderChoices(choice.children, selected, indent + 4, offset)
 				offset += choice.children.length
 			}
 		}
@@ -114,9 +119,9 @@ const TreeSelectPrompt = {
 	}
 
 	, render: function (first) {
-		this.nrOfChoices()
 		if (first) this.out.write(esc.cursorHide)
-		else this.out.write(esc.eraseLines(this.nrOfChoices() + 2))
+		else this.out.write(esc.eraseLines(this._nrOfChoices + 2))
+		this._nrOfChoices = this.nrOfChoices()
 
 		this.out.write([
 			  ui.symbol(this.done, this.aborted)
@@ -137,6 +142,7 @@ const defaults = {
 	  values:  []
 	, value:   null
 	, cursor:  0
+	, _nrOfChoices: 0
 
 	, done:    false
 	, aborted: false
@@ -149,7 +155,11 @@ const treeSelectPrompt = (msg, values, opt) => {
 
 	let p = Object.assign(Object.create(TreeSelectPrompt), defaults, opt)
 	p.msg = msg
-	p.values = values
+	p.values = values.map((v) => {
+		v = Object.create(v)
+		v.expanded = !!v.expanded
+		return v
+	})
 	p.value = p.values[p.cursor].value
 
 	return wrap(p)
